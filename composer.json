@@ -1,5 +1,5 @@
 {
-  "name": "dotted/parquet-to-sql",
+  "name": "dotted-ai/parquet-to-sql",
   "description": "Laravel helper to import Parquet files into PostgreSQL using COPY for speed.",
   "type": "library",
   "license": "MIT",

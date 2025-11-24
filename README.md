@@ -5,7 +5,7 @@ Helper para importar arquivos Parquet diretamente para tabelas PostgreSQL usando
 ## Instalacao
 
 ```bash
-composer require dotted/parquet-to-sql
+composer require dotted-ai/parquet-to-sql
 php artisan vendor:publish --tag=config --provider="ParquetToSql\\ParquetToSqlServiceProvider"
 ```
 
