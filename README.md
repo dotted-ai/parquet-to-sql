@@ -71,3 +71,10 @@ Arquivo `config/parquet-to-sql.php`:
 - Nomes de tabela aceitam esquema opcional (`schema.tabela`) usando apenas letras, numeros e `_`. Nomes de colunas/targets do map aceitam apenas letras, numeros e `_` (sem pontos ou espacos) para manter SQL seguro.
 - O leitor padrao prioriza APIs de streaming (`readRows`, row groups) para nao carregar o arquivo inteiro em memoria; se a lib expor apenas `read()`, ele ainda funciona, mas pode consumir mais memoria.
 - Se sua versao de `codercat/php-parquet` expuser metodos diferentes, implemente um `ParquetRowReader` proprio e passe no importador.
+
+## Testes
+
+```bash
+composer install --dev
+./vendor/bin/phpunit
+```
