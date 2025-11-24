@@ -10,6 +10,9 @@
     "illuminate/console": "^10.0|^11.0",
     "codercat/php-parquet": "^1.5"
   },
+  "require-dev": {
+    "phpunit/phpunit": "^10.5"
+  },
   "autoload": {
     "psr-4": {
       "ParquetToSql\\": "src/"
