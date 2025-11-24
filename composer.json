@@ -1,0 +1,26 @@
+{
+  "name": "dotted/parquet-to-sql",
+  "description": "Laravel helper to import Parquet files into PostgreSQL using COPY for speed.",
+  "type": "library",
+  "license": "MIT",
+  "require": {
+    "php": ">=8.1",
+    "illuminate/support": "^10.0|^11.0",
+    "illuminate/queue": "^10.0|^11.0",
+    "illuminate/console": "^10.0|^11.0",
+    "codercat/php-parquet": "^1.5"
+  },
+  "autoload": {
+    "psr-4": {
+      "ParquetToSql\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "ParquetToSql\\ParquetToSqlServiceProvider"
+      ],
+      "aliases": {}
+    }
+  }
+}
