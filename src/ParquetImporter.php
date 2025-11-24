@@ -3,10 +3,12 @@
 namespace ParquetToSql;
 
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Database\Query\Expression;
 use InvalidArgumentException;
 use ParquetToSql\Contracts\ParquetRowReader;
 use ParquetToSql\Readers\CodercatParquetRowReader;
 use RuntimeException;
+use Throwable;
 
 class ParquetImporter
 {
@@ -34,7 +36,7 @@ class ParquetImporter
             throw new InvalidArgumentException("File not found: {$path}");
         }
 
-        $this->assertSafeIdentifier($table, 'table');
+        $this->assertSafeTableName($table);
         $reader ??= new CodercatParquetRowReader($path);
 
         $sourceColumns = $reader->columns();
@@ -43,7 +45,7 @@ class ParquetImporter
         }
 
         $targetColumns = $this->targetColumns($sourceColumns, $columnMap);
-        $this->assertSafeIdentifiers($targetColumns, 'column');
+        $this->assertSafeColumnNames($targetColumns);
 
         if ($truncateBeforeImport) {
             $this->connection->statement('TRUNCATE TABLE ' . $this->quoteIdentifier($table));
@@ -95,20 +97,32 @@ class ParquetImporter
 
         if (method_exists($pdo, 'pgsqlCopyFromArray')) {
             $timeoutMs = $this->copyTimeoutSeconds * 1_000;
-            $this->connection->statement('SET LOCAL statement_timeout = ' . (int) $timeoutMs);
             $lines = $this->buildCopyLines($rows, $columns);
 
-            $copied = $pdo->pgsqlCopyFromArray($table, $lines, "\t", '\\N', implode(',', $columns));
+            $this->connection->beginTransaction();
 
-            if ($copied === false) {
-                throw new RuntimeException('COPY command failed.');
+            try {
+                $this->connection->statement('SET LOCAL statement_timeout = ' . (int) $timeoutMs);
+
+                $copied = $pdo->pgsqlCopyFromArray($table, $lines, "\t", '\\N', implode(',', $columns));
+
+                if ($copied === false) {
+                    throw new RuntimeException('COPY command failed.');
+                }
+
+                $this->connection->commit();
+            } catch (Throwable $exception) {
+                $this->connection->rollBack();
+
+                throw new RuntimeException('COPY command failed: ' . $exception->getMessage(), 0, $exception);
             }
 
             return;
         }
 
         // Fallback for drivers that do not expose pgsqlCopyFromArray (tests or sqlite).
-        $this->connection->table($table)->insert($rows);
+        $tableExpression = new Expression($this->quoteIdentifier($table));
+        $this->connection->table($tableExpression)->insert($rows);
     }
 
     private function targetColumns(array $sourceColumns, array $columnMap): array
@@ -150,6 +164,10 @@ class ParquetImporter
 
         if (is_array($value) || is_object($value)) {
             $value = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+            if ($value === false) {
+                throw new RuntimeException('Failed to encode value as JSON.');
+            }
         }
 
         $string = (string) $value;
@@ -167,7 +185,13 @@ class ParquetImporter
         }
 
         if (is_array($value) || is_object($value)) {
-            return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $encoded = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+            if ($encoded === false) {
+                throw new RuntimeException('Failed to encode value as JSON.');
+            }
+
+            return $encoded;
         }
 
         if (is_resource($value)) {
@@ -177,17 +201,24 @@ class ParquetImporter
         return $value;
     }
 
-    private function assertSafeIdentifiers(array $identifiers, string $type): void
+    private function assertSafeColumnNames(array $columns): void
     {
-        foreach ($identifiers as $identifier) {
-            $this->assertSafeIdentifier($identifier, $type);
+        foreach ($columns as $column) {
+            $this->assertSafeColumnName($column);
         }
     }
 
-    private function assertSafeIdentifier(string $identifier, string $type): void
+    private function assertSafeColumnName(string $column): void
     {
-        if (!preg_match('/^[A-Za-z0-9_\\.]+$/', $identifier)) {
-            throw new InvalidArgumentException("Invalid {$type} name: {$identifier}");
+        if (!preg_match('/^[A-Za-z0-9_]+$/', $column)) {
+            throw new InvalidArgumentException("Invalid column name: {$column}");
+        }
+    }
+
+    private function assertSafeTableName(string $table): void
+    {
+        if (!preg_match('/^[A-Za-z0-9_\\.]+$/', $table)) {
+            throw new InvalidArgumentException("Invalid table name: {$table}");
         }
     }
 

@@ -68,5 +68,6 @@ Arquivo `config/parquet-to-sql.php`:
 ## Notas e limites
 
 - O codigo tenta usar `PDO::pgsqlCopyFromArray`; se nao existir (ex.: SQLite em testes), cai para inserts em lote.
-- E esperado que os nomes de tabela e colunas sejam seguros (apenas letras, numeros, `_` e `.`, mais o esquema opcional).
-- O leitor padrao e otimista em relacao as variacoes da lib `codercat/php-parquet`. Se sua versao expuser metodos diferentes, implemente um `ParquetRowReader` proprio e passe no importador.
+- Nomes de tabela aceitam esquema opcional (`schema.tabela`) usando apenas letras, numeros e `_`. Nomes de colunas/targets do map aceitam apenas letras, numeros e `_` (sem pontos ou espacos) para manter SQL seguro.
+- O leitor padrao prioriza APIs de streaming (`readRows`, row groups) para nao carregar o arquivo inteiro em memoria; se a lib expor apenas `read()`, ele ainda funciona, mas pode consumir mais memoria.
+- Se sua versao de `codercat/php-parquet` expuser metodos diferentes, implemente um `ParquetRowReader` proprio e passe no importador.

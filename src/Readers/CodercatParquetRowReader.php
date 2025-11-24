@@ -111,13 +111,6 @@ class CodercatParquetRowReader implements ParquetRowReader
 
     private function rowsFromReader(object $reader): iterable
     {
-        if (method_exists($reader, 'read')) {
-            foreach ((array) $reader->read() as $row) {
-                yield (array) $row;
-            }
-            return;
-        }
-
         if (method_exists($reader, 'readRows')) {
             foreach ($reader->readRows() as $row) {
                 yield (array) $row;
@@ -142,6 +135,13 @@ class CodercatParquetRowReader implements ParquetRowReader
                 yield (array) $row;
             }
 
+            return;
+        }
+
+        if (method_exists($reader, 'read')) {
+            foreach ((array) $reader->read() as $row) {
+                yield (array) $row;
+            }
             return;
         }
 
